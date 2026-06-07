@@ -8,7 +8,7 @@ class StoreProductoRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return $this->user()->rol === 'admin' || $this->user()->rol === 'editor';
     }
 
     public function rules(): array

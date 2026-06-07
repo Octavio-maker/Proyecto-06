@@ -7,6 +7,7 @@ use App\Http\Resources\ProductoResource;
 use App\Http\Requests\StoreProductoRequest;   // ← NUEVO
 use App\Http\Requests\UpdateProductoRequest;  // ← NUEVO
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Gate;
 
 class ProductoController extends Controller 
 {
@@ -62,10 +63,9 @@ class ProductoController extends Controller
         return new ProductoResource($producto);
     }
 
-    public function destroy(Producto $producto) 
-    {
-        $this->authorize('delete', $producto);
-        $producto->delete();
-        return response()->noContent();
-    }
+    public function destroy(Producto $producto){
+    Gate::authorize('delete', $producto);  // ← en vez de $this->authorize()
+    $producto->delete();
+    return response()->noContent();
+}
 }

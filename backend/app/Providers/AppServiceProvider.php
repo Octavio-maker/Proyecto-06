@@ -32,6 +32,9 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::define('eliminar-producto', function (User $user) {
             return $user->esAdmin(); // [cite: 39, 40]
+        
+        Gate::policy(Producto::class, ProductoPolicy::class);
+        
         });
     }
 }

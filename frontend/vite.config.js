@@ -16,12 +16,15 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      // Cualquier petición que empiece con /api será redirigida a tu backend Laravel
       '/api': {
         target: 'http://127.0.0.1:8000',
         changeOrigin: true,
         secure: false,
       }
     }
+  },
+  test: {
+    environment: 'jsdom',
+    globals: true,
   }
 })

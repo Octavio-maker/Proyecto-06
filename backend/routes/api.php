@@ -2,18 +2,25 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\ProductoController;
-use App\Http\Controllers\CategoriaController; // <--- AGREGA ESTA LÍNEA
 use App\Http\Controllers\AuthController;
+use App\Http\Controllers\ProductoController;
+use App\Http\Controllers\CategoriaController;
 
-Route::post('/login', [AuthController::class, 'login']);
+// ── Rutas públicas (sin autenticación) ──────────────────────
+Route::post('/login',    [AuthController::class, 'login']);
+Route::post('/register', [AuthController::class, 'register']);
 
-Route::apiResource('productos', ProductoController::class);
+// ── Rutas protegidas (requieren token Sanctum) ───────────────
+Route::middleware('auth:sanctum')->group(function () {
+    Route::get('/me',     [AuthController::class, 'me']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 
-Route::get('/user', function (Request $request) {
-    return $request->user();
-})->middleware('auth:sanctum');
+    Route::get('/user', function (Request $request) {
+        return $request->user();
+    });
 
-// Ahora estas líneas ya no darán error porque el controlador está importado arriba
-Route::apiResource('categorias', CategoriaController::class);
-Route::get('categorias/{categoria}/productos', [CategoriaController::class, 'productos']);
+    Route::apiResource('productos',  ProductoController::class);
+    Route::apiResource('categorias', CategoriaController::class);
+
+    Route::get('categorias/{categoria}/productos', [CategoriaController::class, 'productos']);
+});

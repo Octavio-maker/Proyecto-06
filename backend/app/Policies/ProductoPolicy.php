@@ -45,7 +45,7 @@ class ProductoPolicy
      */
     public function delete(User $user, Producto $producto): bool
     {
-        return $user->esAdmin();
+        return $user->rol === 'admin';
     }
 
 }
