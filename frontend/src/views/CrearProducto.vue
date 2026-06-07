@@ -1,158 +1,172 @@
+<script setup>
+import { ref } from 'vue'
+import { useForm, useField } from 'vee-validate'
+import { productoSchema } from '@/schemas/productoSchema'
+import InputField from '@/components/InputField.vue'
+import api from '@/plugins/axios'
+import { useRouter } from 'vue-router'
+
+const router = useRouter()
+const erroresServidor = ref({})
+const exitoso = ref(false)
+const imagenFile = ref(null)
+
+const { handleSubmit, errors, resetForm } = useForm({
+  validationSchema: productoSchema,
+  initialValues: {
+    nombre: '',
+    precio: '',
+    stock: 0,
+    descripcion: '',
+    categoria_id: null,
+  }
+})
+
+const { value: nombre }      = useField('nombre')
+const { value: precio }      = useField('precio')
+const { value: stock }       = useField('stock')
+const { value: descripcion } = useField('descripcion')
+
+function onImagenChange(e) {
+  imagenFile.value = e.target.files[0] || null
+}
+
+const onSubmit = handleSubmit(async (values) => {
+  erroresServidor.value = {}
+  exitoso.value = false
+
+  try {
+    const formData = new FormData()
+    formData.append('nombre', values.nombre)
+    formData.append('precio', values.precio)
+    formData.append('stock', values.stock)
+    if (values.descripcion) formData.append('descripcion', values.descripcion)
+    if (imagenFile.value)   formData.append('imagen', imagenFile.value)
+
+    await api.post('/productos', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+
+    resetForm()
+    imagenFile.value = null
+    exitoso.value = true
+
+  } catch (e) {
+    // Si el servidor responde con 422, guardamos los errores para mostrarlos en el template
+    if (e.response?.status === 422) {
+      erroresServidor.value = e.response.data.errors
+    } else {
+      // Quitamos el alert() para evitar que bloquee la interfaz
+      console.error('Error al guardar el producto:', e)
+    }
+  }
+})
+</script>
+
 <template>
-  <div style="font-family: Arial, sans-serif; padding: 25px; max-width: 500px; margin: 0 auto; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); margin-top: 30px;">
-    <h2 style="color: #2c3e50; text-align: center; margin-bottom: 20px;">➕ Registrar Producto con Imagen</h2>
-    
-    <div v-if="errorValidacion" style="background:#e74c3c; color:white; padding:12px; margin-bottom:20px; border-radius:4px; font-weight: bold; text-align: center;">
-      {{ errorValidacion }}
+  <div class="crear-producto">
+    <h1>Crear Producto</h1>
+
+    <div v-if="exitoso" class="alerta-exito">
+      ✅ Producto creado exitosamente.
     </div>
 
-    <div v-if="mensaje" style="background:#2ecc71; color:white; padding:12px; margin-bottom:20px; border-radius:4px; font-weight: bold; text-align: center;">
-      {{ mensaje }}
-    </div>
-    
-    <form @submit.prevent="guardar">
-      <div style="margin-bottom: 15px;">
-        <label style="display:block; font-weight:bold; margin-bottom: 5px; color: #34495e;">Nombre del Producto *</label>
-        <input v-model="form.nombre" type="text" placeholder="Ej. iPhone 17 Pro Max" style="width:100%; padding:10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;" required>
+    <form @submit.prevent="onSubmit" novalidate>
+
+      <InputField
+        label="Nombre del producto"
+        name="nombre"
+        v-model="nombre"
+        placeholder="Ej: Camiseta azul"
+        :error="errors.nombre || erroresServidor.nombre?.[0]"
+      />
+
+      <InputField
+        label="Precio"
+        name="precio"
+        type="number"
+        v-model="precio"
+        placeholder="Ej: 299.99"
+        :error="errors.precio || erroresServidor.precio?.[0]"
+      />
+
+      <InputField
+        label="Stock"
+        name="stock"
+        type="number"
+        v-model="stock"
+        placeholder="Ej: 10"
+        :error="errors.stock || erroresServidor.stock?.[0]"
+      />
+
+      <InputField
+        label="Descripción (opcional)"
+        name="descripcion"
+        v-model="descripcion"
+        placeholder="Descripción breve del producto"
+        :error="errors.descripcion || erroresServidor.descripcion?.[0]"
+      />
+
+      <div class="campo">
+        <label for="imagen">Imagen (opcional)</label>
+        <input id="imagen" type="file" accept=".jpg,.png,.webp" @change="onImagenChange" />
+        <span class="error-msg" v-if="erroresServidor.imagen">
+          {{ erroresServidor.imagen[0] }}
+        </span>
       </div>
 
-      <div style="margin-bottom: 15px;">
-        <label style="display:block; font-weight:bold; margin-bottom: 5px; color: #34495e;">Descripción *</label>
-        <textarea v-model="form.descripcion" placeholder="Especificaciones técnicas del artículo..." style="width:100%; padding:10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; height: 80px; resize: none;" required></textarea>
-      </div>
-
-      <div style="display: flex; gap: 15px; margin-bottom: 15px;">
-        <div style="flex: 1;">
-          <label style="display:block; font-weight:bold; margin-bottom: 5px; color: #34495e;">Precio ($) *</label>
-          <input v-model.number="form.precio" type="number" step="0.01" placeholder="0.00" style="width:100%; padding:10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;" required>
-        </div>
-        <div style="flex: 1;">
-          <label style="display:block; font-weight:bold; margin-bottom: 5px; color: #34495e;">Stock Inicial *</label>
-          <input v-model.number="form.stock" type="number" placeholder="0" style="width:100%; padding:10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;" required>
-        </div>
-      </div>
-      
-      <div style="margin-bottom: 15px;">
-        <label style="display:block; font-weight:bold; margin-bottom: 5px; color: #34495e;">Imagen de Portada *</label>
-        <input type="file" accept="image/*" @change="onImageChange" style="display: block; margin-top: 5px;">
-      </div>
-
-      <div v-if="preview" style="margin-bottom:20px; text-align: center; border: 1px dashed #cbd5e1; padding: 10px; background: #f8fafc; border-radius: 4px;">
-        <p style="margin: 0 0 10px 0; font-size: 13px; color: #64748b;">Vista previa del archivo:</p>
-        <img :src="preview" alt="Preview" style="max-width:100%; max-height:160px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
-      </div>
-
-      <!-- Selector de categoría -->
-      <div style="margin-bottom: 15px;">
-        <label style="display:block; font-weight:bold; margin-bottom: 5px; color: #34495e;">Categoría</label>
-        <select v-model="form.categoria_id" style="width:100%; padding:10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px;">
-          <option value="">Sin categoría</option>
-          <option
-            v-for="cat in categorias"
-            :key="cat.id"
-            :value="cat.id"
-          >
-            {{ cat.nombre }}
-          </option>
-        </select>
-      </div>
-
-      <button type="submit" :disabled="cargando" style="background:#3498db; color:white; border:none; padding:12px; width:100%; cursor:pointer; font-weight: bold; border-radius: 4px; font-size: 15px;">
-        {{ cargando ? '🚀 Subiendo archivos a Laravel...' : '💾 Guardar Producto' }}
-      </button>
+      <button type="submit" class="btn-guardar">Guardar producto</button>
     </form>
   </div>
 </template>
 
-<script setup>
-import { reactive, ref, onMounted } from 'vue'
-import api from '../plugins/axios'
-
-const form = reactive({ 
-  nombre: '', 
-  descripcion: '', 
-  precio: '', 
-  stock: '',
-  categoria_id: ''
-})
-
-const categorias = ref([])
-const imagen = ref(null)
-const preview = ref(null)
-const cargando = ref(false)
-const mensaje = ref('')
-const errorValidacion = ref('')
-
-// Carga las categorías al montar el componente
-onMounted(async () => {
-  const { data } = await api.get('/categorias')
-  categorias.value = data.data
-})
-
-const onImageChange = (e) => {
-  const file = e.target.files[0]
-  if (!file) return
-  
-  if (file.size > 2 * 1024 * 1024) {
-    errorValidacion.value = '⚠️ La imagen seleccionada es demasiado grande. El límite es de 2MB.'
-    e.target.value = ''
-    setTimeout(() => { errorValidacion.value = '' }, 4000)
-    return
-  }
-
-  imagen.value = file
-  preview.value = URL.createObjectURL(file)
+<style scoped>
+.crear-producto {
+  max-width: 500px;
+  margin: 40px auto;
+  padding: 24px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.1);
 }
 
-const guardar = async () => {
-  if (form.precio <= 0) {
-    errorValidacion.value = '❌ Error de validación: El precio del artículo debe ser mayor a $0.00.'
-    setTimeout(() => { errorValidacion.value = '' }, 4000)
-    return
-  }
-
-  if (form.stock < 0) {
-    errorValidacion.value = '❌ Error de validación: El stock inicial no puede ser un número negativo.'
-    setTimeout(() => { errorValidacion.value = '' }, 4000)
-    return
-  }
-
-  errorValidacion.value = ''
-  cargando.value = true
-  
-  const fd = new FormData()
-  fd.append('nombre', form.nombre)
-  fd.append('descripcion', form.descripcion)
-  fd.append('precio', form.precio)
-  fd.append('stock', form.stock)
-  fd.append('categoria_id', form.categoria_id)
-  
-  if (imagen.value) {
-    fd.append('imagen', imagen.value)
-  }
-
-  try {
-    await api.post('/productos', fd, {
-      headers: { 'Content-Type': 'multipart/form-data' }
-    })
-    
-    mensaje.value = '¡Producto creado con éxito en Laravel!'
-    
-    form.nombre = ''
-    form.descripcion = ''
-    form.precio = ''
-    form.stock = ''
-    form.categoria_id = ''
-    imagen.value = null
-    preview.value = null
-    
-    setTimeout(() => { mensaje.value = '' }, 3000)
-
-  } catch (err) {
-    console.error("Error en el envío multimedia:", err)
-    alert('Hubo un problema al subir el archivo binario al servidor.')
-  } finally {
-    cargando.value = false
-  }
+h1 {
+  margin-bottom: 24px;
+  font-size: 1.5rem;
 }
-</script>
+
+.alerta-exito {
+  background: #dcfce7;
+  color: #166534;
+  padding: 10px 14px;
+  border-radius: 6px;
+  margin-bottom: 16px;
+}
+
+.btn-guardar {
+  width: 100%;
+  padding: 10px;
+  background: #4f46e5;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.btn-guardar:hover {
+  background: #4338ca;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+label { font-weight: 600; font-size: 0.9rem; }
+
+.error-msg { color: #ef4444; font-size: 0.8rem; }
+</style>

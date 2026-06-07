@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Gate; // IMPORTANTE: Agregar esto
 
 class AuthController extends Controller
 {
@@ -33,6 +34,24 @@ class AuthController extends Controller
         return response()->json([
             'token' => $token,
             'token_type' => 'Bearer'
+        ]);
+    }
+
+    // NUEVO MÉTODO PARA EL PASO 4.5
+    public function me(Request $request) 
+    {
+        $user = $request->user();
+        
+        return response()->json([
+            'id'       => $user->id,
+            'name'     => $user->name,
+            'email'    => $user->email,
+            'rol'      => $user->rol,
+            'permisos' => [
+                'crear'    => Gate::allows('crear-producto'),
+                'editar'   => Gate::allows('editar-producto'),
+                'eliminar' => Gate::allows('eliminar-producto'),
+            ],
         ]);
     }
 }

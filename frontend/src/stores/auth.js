@@ -5,7 +5,8 @@ export const useAuthStore = defineStore('auth', {
   state: () => ({
     user: null,
     token: localStorage.getItem('token') || null,
-    loading: false
+    loading: false,
+    permisos: { crear: false, editar: false, eliminar: false } 
   }),
   getters: {
     isAuthenticated: (state) => !!state.token
@@ -16,7 +17,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await api.post('/login', credentials)
         this.token = response.data.token
-        this.user = response.data.user
+        await this.fetchUser() 
         localStorage.setItem('token', this.token)
         return { success: true }
       } catch (error) {
@@ -29,6 +30,7 @@ export const useAuthStore = defineStore('auth', {
       try {
         const response = await api.get('/me')
         this.user = response.data
+        this.permisos = response.data.permisos 
       } catch (error) {
         this.logout()
       }
@@ -36,6 +38,7 @@ export const useAuthStore = defineStore('auth', {
     logout() {
       this.token = null
       this.user = null
+      this.permisos = { crear: false, editar: false, eliminar: false }
       localStorage.removeItem('token')
     }
   }

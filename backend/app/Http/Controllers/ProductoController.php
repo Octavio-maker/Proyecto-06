@@ -3,22 +3,22 @@
 namespace App\Http\Controllers;
 
 use App\Models\Producto;
-use App\Http\Resources\ProductoResource; // Asegúrate de tener este Resource
+use App\Http\Resources\ProductoResource;
+use App\Http\Requests\StoreProductoRequest;   // ← NUEVO
+use App\Http\Requests\UpdateProductoRequest;  // ← NUEVO
 use Illuminate\Http\Request;
 
 class ProductoController extends Controller 
 {
     public function index(Request $request) 
     {
-        // Usamos los Query Scopes implementados en el modelo 
         $productos = Producto::with('categoria')
             ->buscar($request->busqueda)
             ->deCategoria($request->categoria_id)
             ->rangoPrecio($request->precio_min, $request->precio_max)
             ->orderBy($request->get('orden', 'nombre'), $request->get('dir', 'asc'))
-            ->paginate($request->get('por_pagina', 15)); // 15 items por página [cite: 46]
+            ->paginate($request->get('por_pagina', 15));
 
-        // Retornamos la colección paginada 
         return ProductoResource::collection($productos);
     }
 
@@ -33,17 +33,13 @@ class ProductoController extends Controller
         return new ProductoResource($producto);
     }
 
-    public function store(Request $request) 
+    // ↓ Cambia Request por StoreProductoRequest
+    public function store(StoreProductoRequest $request) 
     {
-        $request->validate([
-            'nombre' => 'required|string',
-            'descripcion' => 'required|string',
-            'precio' => 'required|numeric',
-            'stock' => 'required|integer',
-            'imagen' => 'nullable|image|mimes:jpg,png,webp|max:2048',
-        ]);
+        // Ya NO necesitas $this->authorize() aquí, el Form Request lo hace
+        // Ya NO necesitas $request->validate() aquí, el Form Request lo hace
 
-        $data = $request->except('imagen');
+        $data = $request->validated(); // ← solo los campos validados
 
         if ($request->hasFile('imagen')) {
             $data['imagen'] = $request->file('imagen')->store('productos', 'public');
@@ -51,5 +47,25 @@ class ProductoController extends Controller
 
         $producto = Producto::create($data);
         return response()->json(['message' => 'Producto creado con éxito', 'data' => $producto], 201);
+    }
+
+    // ↓ Cambia Request por UpdateProductoRequest
+    public function update(UpdateProductoRequest $request, Producto $producto)
+    {
+        $data = $request->validated();
+
+        if ($request->hasFile('imagen')) {
+            $data['imagen'] = $request->file('imagen')->store('productos', 'public');
+        }
+
+        $producto->update($data);
+        return new ProductoResource($producto);
+    }
+
+    public function destroy(Producto $producto) 
+    {
+        $this->authorize('delete', $producto);
+        $producto->delete();
+        return response()->noContent();
     }
 }

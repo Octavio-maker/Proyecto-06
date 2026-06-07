@@ -17,11 +17,11 @@
       <div v-else v-for="producto in productos" :key="producto.id" class="col-md-3 mb-4">
         <div class="card h-100">
           <img 
-          :src="'http://127.0.0.1:8000/storage/' + producto.imagen" 
-          class="card-img-top" 
-         style="height:200px; object-fit:cover; width: 100%; background-color: #f0f0f0;"
-         @error="handleImageError"
-/>
+            :src="'http://127.0.0.1:8000/storage/' + producto.imagen" 
+            class="card-img-top" 
+            style="height:200px; object-fit:cover; width: 100%; background-color: #f0f0f0;"
+            @error="handleImageError"
+          />
           <div class="card-body">
             <h5 class="card-title">{{ producto.nombre }}</h5>
             <p class="fw-bold text-primary">${{ producto.precio }}</p>
@@ -64,11 +64,11 @@ const cargarProductos = async () => {
   try {
     const { data } = await api.get('/productos', {
       params: {
-        busqueda:     filtros.busqueda,
-        categoria:    filtros.categoria_id, // Cambiado de categoria_id a categoria (como en useFiltros)
-        min:          filtros.precio_min,   // Cambiado de precio_min a min
-        max:          filtros.precio_max,   // Cambiado de precio_max a max
-        page:         filtros.pagina,
+        busqueda:    filtros.busqueda,
+        categoria:   filtros.categoria_id,
+        min:         filtros.precio_min,
+        max:         filtros.precio_max,
+        page:        filtros.pagina,
       }
     })
     productos.value = data.data 
@@ -82,7 +82,6 @@ const cargarProductos = async () => {
 
 watch(() => route.query, cargarProductos, { immediate: true })
 
-// Esta función ocultará la imagen si falla al cargar
 const handleImageError = (event) => { 
   event.target.style.display = 'none'; 
 }
