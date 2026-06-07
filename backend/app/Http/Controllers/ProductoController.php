@@ -3,32 +3,34 @@
 namespace App\Http\Controllers;
 
 use App\Models\Producto;
+use App\Http\Resources\ProductoResource; // Asegúrate de tener este Resource
 use Illuminate\Http\Request;
 
 class ProductoController extends Controller 
 {
-    public function index() {
-    $productos = Producto::all()->map(function($prod) {
-        $prod->imagen_url = $prod->imagen ? asset('storage/' . $prod->imagen) : asset('storage/default.jpg');
-        return $prod;
-    });
+    public function index(Request $request) 
+    {
+        // Usamos los Query Scopes implementados en el modelo 
+        $productos = Producto::with('categoria')
+            ->buscar($request->busqueda)
+            ->deCategoria($request->categoria_id)
+            ->rangoPrecio($request->precio_min, $request->precio_max)
+            ->orderBy($request->get('orden', 'nombre'), $request->get('dir', 'asc'))
+            ->paginate($request->get('por_pagina', 15)); // 15 items por página [cite: 46]
 
-    return response()->json($productos);
-}
+        // Retornamos la colección paginada 
+        return ProductoResource::collection($productos);
+    }
 
     public function show($id) 
     {
-        $producto = Producto::find($id);
+        $producto = Producto::with('categoria')->find($id);
         
         if (!$producto) {
             return response()->json(['message' => 'Producto no encontrado'], 404);
         }
 
-        // Aseguramos que la imagen tenga URL pública
-        $producto->imagen_url = $producto->imagen ? asset('storage/' . $producto->imagen) : null;
-        
-        // Retornamos el objeto dentro de una llave 'data' para consistencia
-        return response()->json(['data' => $producto]);
+        return new ProductoResource($producto);
     }
 
     public function store(Request $request) 
