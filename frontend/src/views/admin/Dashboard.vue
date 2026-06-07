@@ -1,0 +1,1 @@
+<template><h2>📈 Panel General de Analíticas</h2><p>Métricas de la tienda.</p></template>

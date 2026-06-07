@@ -1,0 +1,1 @@
+<template><h2>📦 Control de Inventario</h2><p>Existencias vinculadas a Laravel.</p></template>
